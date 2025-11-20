@@ -21,8 +21,8 @@ st.markdown("""
 # --- Data Loading ---
 @st.cache_data
 def load_data():
-    data_path = "train.csv"
-    lookup_path = "feature_lookup.csv"
+    data_path = pd.read_csv(r"C:\Users\HP\Downloads\train.csv")
+    lookup_path = pd.read_csv(r"C:\Users\HP\Downloads\feature_lookup.csv")
     
     if not os.path.exists(data_path):
         return None, None, None
