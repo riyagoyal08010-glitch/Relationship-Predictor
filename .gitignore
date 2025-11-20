@@ -20,7 +20,6 @@ __pycache__/
 *.sav
 
 # Dataset files
-*.csv
 *.xlsx
 dataset/
 
