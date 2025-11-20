@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 from datetime import datetime
 import os
 
+joblib.load("relationship_predictor.pkl")
+
 # --- 1. CONFIGURATION & PURE BLACK THEME ---
 st.set_page_config(
     page_title="Relationship Predictor",
