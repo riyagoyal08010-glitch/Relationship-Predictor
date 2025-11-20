@@ -6,29 +6,92 @@ This project predicts the **relationship probability** of students using the dat
 It includes a complete ML pipeline from exploratory data analysis (EDA) to model training  
 and finally a Streamlit-based interactive prediction interface.
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
-![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B)
-![XGBoost](https://img.shields.io/badge/AI-XGBoost-green)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://riyagoyal08010-glitch-relationship-predictor-app-bjo8lq.streamlit.app/)
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python&logoColor=white)
+![XGBoost](https://img.shields.io/badge/AI-XGBoost-green?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Completed-success?style=for-the-badge)
 
-An AI-powered dashboard that predicts the "relationship probability" of a student based on 33 distinct features ranging from academic performance and social habits to digital footprint and lifestyle choices.
+An advanced AI-powered analytics dashboard that predicts relationship compatibility and success probability. Built with **XGBoost** and **Streamlit**, this application analyzes **33 distinct student traits**—covering academic performance, social habits, digital footprint, and lifestyle choices—to generate a precise probability score.
 
-## ✨ Features
+---
 
-* **🧠 AI Analysis:** Powered by a trained XGBoost Regressor model (`relationship_predictor.pkl`) to calculate probability scores.
-* **📊 Interactive Dashboard:**
-    * **Gauge Chart:** Visualizes the success likelihood (0-100%).
-    * **Personality Radar:** A spider chart comparing Social, Academic, Digital, Lifestyle, and Ego scores.
-* **🌑 Aesthetic Dark Mode:** A custom-styled, glassmorphism-inspired dark UI for a premium look.
-* **💾 History Tracking:** Automatically saves predictions to a local SQLite database (`predictions.db`) to compare your score against the average of previous users.
-* **🛡️ Robust Inputs:** Features a "Smart Encoder" that handles categorical text inputs safely to prevent model crashes.
+## 🚀 Live Demo
 
-## 🛠️ Tech Stack
+👉 **[Click here to launch the Dashboard](https://riyagoyal08010-glitch-relationship-predictor-app-bjo8lq.streamlit.app/)**
 
-* **Frontend:** Streamlit
-* **Model:** XGBoost (Scikit-Learn API)
-* **Visualization:** Plotly Express & Graph Objects
-* **Database:** SQLite3 (Local)
-* **Data Handling:** Pandas & Numpy
+---
+
+## 📊 Exploratory Data Analysis (EDA)
+
+Before building the model, extensive analysis was performed on the dataset to understand the factors influencing relationships.
+
+* **Correlation Analysis:** A heatmap revealed that social traits (like *Social Habits Score* and *Popularity*) had a stronger positive correlation with relationship probability than academic traits.
+* **Feature Distributions:**
+    * **Age:** Most students in the dataset were between 18-22 years old.
+    * **Digital Footprint:** High variance in *Instagram Followers* and *Gaming Hours*, indicating diverse digital lifestyles.
+* **Categorical Impact:** Factors like *Home State* and *Branch* showed interesting clustering, suggesting that students from certain backgrounds or majors had slightly higher average probabilities.
+
+---
+
+## ⚙️ The Process: From Data to Dashboard
+
+This project followed a structured Data Science lifecycle:
+
+### 1. Data Preprocessing
+* **Cleaning:** Handled missing values and standardized numeric scales.
+* **Encoding:** Converted categorical text (e.g., "CSE", "Delhi") into numeric codes for machine learning compatibility.
+* **Feature Selection:** Analyzed 33 distinct features (F1-F33) to ensure relevant inputs for the model.
+
+### 2. Model Training & Selection
+We experimented with multiple algorithms to find the best fit:
+* **Linear Regression:** Provided a baseline but failed to capture complex, non-linear patterns (R² Score: ~0.56).
+* **Random Forest:** Better performance but prone to overfitting on this dataset.
+* **XGBoost Regressor (Winner):** Achieved the highest accuracy (R² Score: **~0.67**) with the lowest Error (RMSE). This model was chosen for deployment.
+
+### 3. Application Development
+* Built a **Streamlit** frontend for real-time interaction.
+* Integrated a **"Smart Encoder"** to handle user inputs dynamically without crashing.
+* Designed a **local SQLite database** to store user predictions for historical comparison.
+
+---
+
+## 📈 Project Outcomes
+
+* **High Accuracy:** The final model successfully predicts relationship probability with a low margin of error (MAE ~4.2).
+* **Real-time Insights:** Users get instant feedback not just on their score, but on how their *Social, Academic, and Lifestyle* choices balance out via the Radar Chart.
+* **Scalable Deployment:** The app is fully deployed on Streamlit Cloud and accessible globally.
+
+---
+
+## ✨ Key App Features
+
+### 🧠 **AI-Powered Analysis**
+* Uses the trained XGBoost model to predict scores instantly.
+* Handles non-linear relationships between traits like *Study Hours* vs. *Social Habits*.
+
+### 🎨 **Premium UI/UX**
+* **Pure Black Aesthetic:** A custom `#000000` dark theme with neon pink (`#ff0055`) accents.
+* **Interactive Visuals:**
+    * **Gauge Meter:** Real-time probability speedometer.
+    * **Personality Radar:** Spider chart visualizing the 5-dimensional personality footprint.
+
+### 💾 **Smart Data Engine**
+* **Local History:** Automatically saves every prediction to `predictions.db`.
+* **Benchmarking:** Compares your unique score against the live global average of all previous users.
+
+---
+
+## 📂 Project Structure
+
+```text
+relationship-predictor/
+├── app.py                       # 🧠 Main Application Logic
+├── relationship_predictor.json  # 🤖 Trained XGBoost Model
+├── requirements.txt             # 📦 Library Dependencies
+├── predictions.db               # 💾 Local Database (Auto-generated)
+├── .gitignore                   # 🙈 Files to ignore (DB, Cache)
+└── README.md                    # 📄 Project Documentation
+
 
 ## 🚀 Installation & Setup
 
