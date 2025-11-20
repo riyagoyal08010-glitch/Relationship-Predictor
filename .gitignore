@@ -1,0 +1,40 @@
+
+# ⭐ **.gitignore (Perfect for your ML + Streamlit Project)**
+
+```gitignore
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Streamlit temp files
+.streamlit/
+
+# Model artifacts
+*.pkl
+*.joblib
+*.sav
+
+# Dataset files
+*.csv
+*.xlsx
+dataset/
+
+# VS Code files
+.vscode/
+
+# Environment folders
+env/
+venv/
+.venv/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
