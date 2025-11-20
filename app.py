@@ -7,20 +7,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import os
+import xgboost as xgb
 
+def load_model(model_path="relationship_predictor.json"):
+    model = xgb.Booster()
+    model.load_model(model_path)
+    return model
 
-# Get the directory where app.py is right now
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Build the path to the model file
-model_path = os.path.join(current_dir, "relationship_predictor.pkl")
-
-try:
-    model = joblib.load(model_path)
-except FileNotFoundError:
-    st.error("⚠️ Model file not found on server!")
-    st.info("Did you upload 'relationship_predictor.pkl' to your GitHub repository?")
-    st.stop()
 # --- 1. CONFIGURATION & PURE BLACK THEME ---
 st.set_page_config(
     page_title="Relationship Predictor",
