@@ -1,34 +1,14 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import xgboost as xgb  # <--- Changed from joblib to xgboost
 import sqlite3
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import os
-import xgboost as xgb
 
-# ==============================
-# 1. MODEL LOADING (XGBRegressor booster)
-# ==============================
-
-@st.cache_resource
-def load_model(model_path: str = "relationship_predictor.json") -> xgb.Booster:
-    """
-    Load XGBoost model saved from XGBRegressor:
-        xgb_reg.get_booster().save_model("relationship_predictor.json")
-    """
-    booster = xgb.Booster()
-    booster.load_model(model_path)
-    return booster
-
-
-model = load_model("relationship_predictor.json")
-
-# ==============================
-# 2. STREAMLIT CONFIG & THEME
-# ==============================
-
+# --- 1. CONFIGURATION & PURE BLACK THEME ---
 st.set_page_config(
     page_title="Relationship Predictor",
     page_icon="💘",
@@ -36,8 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-st.markdown(
-    """
+st.markdown("""
 <style>
     /* PURE BLACK BACKGROUND */
     .stApp {
@@ -45,14 +24,14 @@ st.markdown(
         color: #ffffff;
     }
     
-    /* Inputs - Darker Grey for contrast */
+    /* Inputs */
     .stNumberInput input, .stSelectbox div[data-baseweb="select"] div {
         background-color: #1a1a1a !important;
         color: white !important;
         border: 1px solid #333;
     }
     
-    /* Cards / Containers */
+    /* Cards */
     div.css-1r6slb0 {
         background-color: #111111;
         border: 1px solid #333;
@@ -83,7 +62,7 @@ st.markdown(
         border-top: 2px solid #ff0055;
     }
     
-    /* Buttons - Neon Accent */
+    /* Buttons */
     div.stButton > button {
         background: #ff0055;
         color: white;
@@ -98,14 +77,9 @@ st.markdown(
         box-shadow: 0 0 15px rgba(255, 0, 85, 0.8);
     }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-# ==============================
-# 3. FEATURE CONFIG
-# ==============================
-
+# --- 2. FEATURE CONFIG ---
 FEATURE_CONFIG = {
     "👤 Personal": {
         "F1": {"name": "Age", "type": "num", "min": 17, "max": 30, "default": 20},
@@ -149,220 +123,152 @@ FEATURE_CONFIG = {
         "F28": {"name": "Memes Shared/Day", "type": "cat_int", "min": 0, "max": 50, "default": 5},
         "F29": {"name": "Gaming (Hrs/Wk)", "type": "num", "min": 0.0, "max": 50.0, "default": 2.0},
         "F33": {"name": "Anime Watched", "type": "num", "min": 0.0, "max": 200.0, "default": 10.0},
-    },
+    }
 }
-
 FEATURE_ORDER = [f"F{i}" for i in range(1, 34)]
 
-# ==============================
-# 4. DATABASE HELPERS
-# ==============================
-
+# --- 3. DATABASE ---
 DB_FILE = "predictions.db"
-
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute(
-        """
-        CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT,
-            probability REAL
-        )
-        """
-    )
+    c.execute('''CREATE TABLE IF NOT EXISTS history
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, probability REAL)''')
     conn.commit()
     conn.close()
 
-
-def save_to_db(prob: float):
+def save_to_db(prob):
     try:
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
-        c.execute(
-            "INSERT INTO history (timestamp, probability) VALUES (?, ?)",
-            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), prob),
-        )
+        c.execute("INSERT INTO history (timestamp, probability) VALUES (?, ?)",
+                  (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), prob))
         conn.commit()
         conn.close()
-    except Exception:
-        # Silently ignore DB errors for UX
-        pass
+    except: pass
 
-
-def get_history() -> pd.DataFrame:
+def get_history():
     try:
         conn = sqlite3.connect(DB_FILE)
         df = pd.read_sql("SELECT * FROM history", conn)
         conn.close()
         return df
-    except Exception:
-        return pd.DataFrame()
+    except: return pd.DataFrame()
 
-# ==============================
-# 5. MAIN APP
-# ==============================
-
-
+# --- 4. MAIN APP ---
 def main():
     init_db()
     st.title("💘 Relationship Probability Predictor")
-
-    # ---------- INPUTS ----------
+    
+    # INPUTS
     user_inputs = {}
     tabs = st.tabs(list(FEATURE_CONFIG.keys()))
-
     for i, (group, features) in enumerate(FEATURE_CONFIG.items()):
         with tabs[i]:
             cols = st.columns(4)
             col_idx = 0
             for f_code, config in features.items():
                 with cols[col_idx % 4]:
-                    if config["type"] == "num":
-                        user_inputs[f_code] = st.number_input(
-                            config["name"],
-                            float(config["min"]),
-                            float(config["max"]),
-                            float(config["default"]),
-                            key=f_code,
-                        )
-                    elif config["type"] == "cat":
-                        user_inputs[f_code] = st.selectbox(
-                            config["name"], config["options"], key=f_code
-                        )
-                    elif config["type"] == "cat_int":
-                        user_inputs[f_code] = st.number_input(
-                            config["name"],
-                            int(config["min"]),
-                            int(config["max"]),
-                            int(config["default"]),
-                            key=f_code,
-                        )
+                    if config['type'] == 'num':
+                        user_inputs[f_code] = st.number_input(config['name'], float(config['min']), float(config['max']), float(config['default']), key=f_code)
+                    elif config['type'] == 'cat':
+                        user_inputs[f_code] = st.selectbox(config['name'], config['options'], key=f_code)
+                    elif config['type'] == 'cat_int':
+                        user_inputs[f_code] = st.number_input(config['name'], int(config['min']), int(config['max']), int(config['default']), key=f_code)
                 col_idx += 1
 
     st.markdown("---")
 
-    # ---------- PREDICT BUTTON ----------
+    # PREDICT
     if st.button("🔮 Run Analysis"):
         try:
-            # 1. Prepare DataFrame in correct feature order
+            # 1. Load Model (JSON Way)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(current_dir, "relationship_predictor.json") # <--- Updated to .json
+
+            if not os.path.exists(model_path):
+                st.error(f"⚠️ Model not found at: {model_path}")
+                st.info("Did you upload 'relationship_predictor.json' to GitHub?")
+                st.stop()
+            
+            # Initialize XGBoost and load JSON
+            model = xgb.XGBRegressor()
+            model.load_model(model_path)
+
+            # 2. Prepare Data
             input_df = pd.DataFrame([user_inputs])
             input_df = input_df[FEATURE_ORDER]
 
-            # 2. Encode categorical text -> numeric codes
+            # 3. Encode Text -> Numbers (Smart Fix)
             for col in input_df.columns:
-                if input_df[col].dtype == "object" or input_df[col].dtype.name == "category":
-                    input_df[col] = input_df[col].astype("category").cat.codes
-
-            # 3. Convert to numpy
+                if input_df[col].dtype == 'object' or input_df[col].dtype.name == 'category':
+                    input_df[col] = input_df[col].astype('category').cat.codes
+            
+            # 4. Array Conversion
             model_input = input_df.astype(float).values
-
-            # 4. Predict using XGBoost Booster
+            
+            # 5. PREDICT (With 33 vs 34 Column Fix)
             try:
-                dtest = xgb.DMatrix(model_input)
-                prediction = model.predict(dtest)[0]
+                prediction = model.predict(model_input)[0]
             except Exception:
-                # If 33 columns fail, try 34 by adding dummy feature
+                # If 33 columns fail, try 34 (add dummy ID)
                 dummy_id = np.zeros((model_input.shape[0], 1))
                 model_input_fixed = np.hstack((dummy_id, model_input))
-                dtest = xgb.DMatrix(model_input_fixed)
-                prediction = model.predict(dtest)[0]
-
-            if isinstance(prediction, (list, np.ndarray)):
-                prediction = prediction[0]
-
-            # NOTE:
-            # If your XGBRegressor was trained to output 0–1,
-            # uncomment the next line:
-            # prediction = prediction * 100
-
-            # Clamp to [0, 100]
+                prediction = model.predict(model_input_fixed)[0]
+            
+            # Result handling
+            if isinstance(prediction, (list, np.ndarray)): prediction = prediction[0]
             prediction = float(max(0, min(100, prediction)))
-
-            # Save to DB
             save_to_db(prediction)
 
-            # ---------- DASHBOARD METRICS ----------
+            # --- DASHBOARD ---
             k1, k2, k3 = st.columns(3)
-            with k1:
-                st.metric("❤️ Probability", f"{prediction:.1f}%")
-
-            with k2:
-                if prediction < 40:
-                    status = "Solo"
-                elif prediction < 75:
-                    status = "Mingling"
-                else:
-                    status = "Taken"
+            with k1: st.metric("❤️ Probability", f"{prediction:.1f}%")
+            with k2: 
+                status = "Solo" if prediction < 40 else "Mingling" if prediction < 75 else "Taken"
                 st.metric("📝 Status", status)
-
             with k3:
                 hist = get_history()
-                avg = hist["probability"].mean() if not hist.empty else 0
-                st.metric("⚖️ Vs Average", f"{avg:.1f}%", f"{prediction - avg:.1f}%")
+                avg = hist['probability'].mean() if not hist.empty else 0
+                st.metric("⚖️ Vs Average", f"{avg:.1f}%", f"{prediction-avg:.1f}%")
 
-            # ---------- VISUALIZATIONS ----------
+            # Graphs
             g1, g2 = st.columns(2)
-
-            # Gauge Chart
             with g1:
-                fig = go.Figure(
-                    go.Indicator(
-                        mode="gauge+number",
-                        value=prediction,
-                        title={"text": "Likelihood", "font": {"color": "white"}},
-                        gauge={
-                            "axis": {"range": [0, 100], "tickcolor": "white"},
-                            "bar": {"color": "#ff0055"},
-                            "bgcolor": "#333333",
-                        },
-                    )
-                )
-                fig.update_layout(
-                    height=300,
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    font={"color": "white"},
-                )
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number", value=prediction,
+                    title={'text': "Likelihood", 'font': {'color': 'white'}},
+                    gauge={
+                        'axis': {'range': [0, 100], 'tickcolor': 'white'}, 
+                        'bar': {'color': "#ff0055"},
+                        'bgcolor': "#333333"
+                    }
+                ))
+                fig.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', font={'color': 'white'})
                 st.plotly_chart(fig, use_container_width=True)
-
-            # Radar Chart
+            
             with g2:
-                vals = [
-                    min(10, (user_inputs["F14"] + user_inputs["F17"]) / 2),
-                    min(10, user_inputs["F6"]),
-                    min(10, user_inputs["F25"] / 5),
-                    min(10, user_inputs["F32"]),
-                    min(10, user_inputs["F20"]),
-                ]
-                fig_rad = go.Figure(
-                    go.Scatterpolar(
-                        r=vals,
-                        theta=["Social", "Acad", "Digi", "Life", "Ego"],
-                        fill="toself",
-                        line_color="#ff0055",
-                        fillcolor="rgba(255, 0, 85, 0.3)",
-                    )
-                )
+                vals = [min(10, (user_inputs['F14']+user_inputs['F17'])/2), min(10, user_inputs['F6']), 
+                        min(10, user_inputs['F25']/5), min(10, user_inputs['F32']), min(10, user_inputs['F20'])]
+                fig_rad = go.Figure(go.Scatterpolar(
+                    r=vals, 
+                    theta=['Social', 'Acad', 'Digi', 'Life', 'Ego'], 
+                    fill='toself', 
+                    line_color='#ff0055',
+                    fillcolor='rgba(255, 0, 85, 0.3)'
+                ))
                 fig_rad.update_layout(
-                    height=300,
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    polar=dict(
-                        bgcolor="rgba(0,0,0,0)",
-                        radialaxis=dict(color="white", showline=False),
-                    ),
-                    font={"color": "white"},
+                    height=300, 
+                    paper_bgcolor='rgba(0,0,0,0)', 
+                    polar=dict(bgcolor='rgba(0,0,0,0)', radialaxis=dict(color='white', showline=False)), 
+                    font={'color': 'white'}
                 )
                 st.plotly_chart(fig_rad, use_container_width=True)
 
         except Exception as e:
             st.error(f"Error: {e}")
-            st.info(
-                "Make sure 'relationship_predictor.json' is in the same folder and "
-                "was saved using: xgb_reg.get_booster().save_model('relationship_predictor.json')."
-            )
-
+            st.info("Troubleshoot: Ensure 'relationship_predictor.json' is in the same folder.")
 
 if __name__ == "__main__":
     main()
