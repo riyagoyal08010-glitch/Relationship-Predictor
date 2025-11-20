@@ -123,5 +123,5 @@ The best model was exported using:
 ```python
 joblib.dump(best_model, "relationship_predictor.pkl")
 
-
+APP URL : https://riyagoyal08010-glitch-relationship-predictor-app-bjo8lq.streamlit.app/
 
