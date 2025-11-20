@@ -121,5 +121,5 @@ The best model was exported using:
 ```python
 joblib.dump(best_model, "relationship_predictor.pkl")
 
-APP URL : https://riyagoyal08010-glitch-relationship-predictor-app-bjo8lq.streamlit.app/
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://riyagoyal08010-glitch-relationship-predictor-app-bjo8lq.streamlit.app/)
 
