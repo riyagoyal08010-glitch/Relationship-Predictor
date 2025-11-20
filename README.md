@@ -6,8 +6,6 @@ This project predicts the **relationship probability** of students using the dat
 It includes a complete ML pipeline from exploratory data analysis (EDA) to model training  
 and finally a Streamlit-based interactive prediction interface.
 
-# 💘 Relationship Probability Predictor
-
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B)
 ![XGBoost](https://img.shields.io/badge/AI-XGBoost-green)
