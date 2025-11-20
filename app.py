@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import xgboost as xgb  # <--- Changed from joblib to xgboost
+import joblib
+import xgboost as xgb
 import sqlite3
 import plotly.express as px
 import plotly.graph_objects as go
@@ -183,39 +184,45 @@ def main():
     # PREDICT
     if st.button("🔮 Run Analysis"):
         try:
-            # 1. Load Model (JSON Way)
+            # 1. LOAD MODEL (Supports both .pkl and .json)
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            model_path = os.path.join(current_dir, "relationship_predictor.json") # <--- Updated to .json
-
-            if not os.path.exists(model_path):
-                st.error(f"⚠️ Model not found at: {model_path}")
-                st.info("Did you upload 'relationship_predictor.json' to GitHub?")
-                st.stop()
             
-            # Initialize XGBoost and load JSON
-            model = xgb.XGBRegressor()
-            model.load_model(model_path)
+            # Try JSON first (XGBoost format)
+            json_path = os.path.join(current_dir, "relationship_predictor.json")
+            pkl_path = os.path.join(current_dir, "relationship_predictor.pkl")
+            
+            model = None
+            
+            if os.path.exists(json_path):
+                model = xgb.XGBRegressor()
+                model.load_model(json_path)
+            elif os.path.exists(pkl_path):
+                model = joblib.load(pkl_path)
+            else:
+                st.error("⚠️ Model file not found (checked .json and .pkl).")
+                st.info("Upload 'relationship_predictor.pkl' or '.json' to GitHub.")
+                st.stop()
 
-            # 2. Prepare Data
+            # 2. PREPARE DATA (Fixing the Feature Names issue)
             input_df = pd.DataFrame([user_inputs])
-            input_df = input_df[FEATURE_ORDER]
+            input_df = input_df[FEATURE_ORDER] # Ensures order is F1...F33
 
-            # 3. Encode Text -> Numbers (Smart Fix)
+            # 3. Encode Text -> Numbers (Keeping DataFrame structure)
             for col in input_df.columns:
                 if input_df[col].dtype == 'object' or input_df[col].dtype.name == 'category':
                     input_df[col] = input_df[col].astype('category').cat.codes
             
-            # 4. Array Conversion
-            model_input = input_df.astype(float).values
+            # Ensure all numeric
+            input_df = input_df.astype(float)
             
-            # 5. PREDICT (With 33 vs 34 Column Fix)
+            # 4. PREDICT
+            # We pass 'input_df' (DataFrame) directly, NOT '.values' (Array)
+            # This preserves the column names "F1", "F2"... which the model needs.
             try:
-                prediction = model.predict(model_input)[0]
-            except Exception:
-                # If 33 columns fail, try 34 (add dummy ID)
-                dummy_id = np.zeros((model_input.shape[0], 1))
-                model_input_fixed = np.hstack((dummy_id, model_input))
-                prediction = model.predict(model_input_fixed)[0]
+                prediction = model.predict(input_df)[0]
+            except Exception as e:
+                st.error(f"Prediction Error: {e}")
+                st.stop()
             
             # Result handling
             if isinstance(prediction, (list, np.ndarray)): prediction = prediction[0]
@@ -267,8 +274,8 @@ def main():
                 st.plotly_chart(fig_rad, use_container_width=True)
 
         except Exception as e:
-            st.error(f"Error: {e}")
-            st.info("Troubleshoot: Ensure 'relationship_predictor.json' is in the same folder.")
+            st.error(f"Error details: {e}")
+            st.info("Tip: Check if your model file is uploaded and inputs are correct.")
 
 if __name__ == "__main__":
     main()
